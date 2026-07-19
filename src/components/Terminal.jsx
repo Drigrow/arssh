@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { XCircle, Activity, History, X } from 'lucide-react';
+import { XCircle, Activity, History, X, TerminalSquare } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
 export default function Terminal({ session, onDisconnect }) {
@@ -20,6 +20,9 @@ export default function Terminal({ session, onDisconnect }) {
   const [commandHistory, setCommandHistory] = useState([]);
   const cmdBuffer = useRef('');
   const [confirmModal, setConfirmModal] = useState(null);
+  
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
+  const [commandInput, setCommandInput] = useState('');
 
   useEffect(() => {
     historyDateRef.current = historyDate;
@@ -213,6 +216,9 @@ export default function Terminal({ session, onDisconnect }) {
             {session.name || session.host} - {status}
           </div>
           <div className="actions" style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => setCommandBarOpen(!commandBarOpen)}>
+              <TerminalSquare size={14} /> Command Bar
+            </button>
             <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => setHistoryOpen(!historyOpen)}>
               <History size={14} /> History
             </button>
@@ -222,6 +228,29 @@ export default function Terminal({ session, onDisconnect }) {
           </div>
         </div>
         <div className="terminal-wrapper" ref={terminalRef}></div>
+        {commandBarOpen && (
+          <div className="command-bar" style={{ display: 'flex', padding: '0.5rem', background: '#1e1e1e', borderTop: '1px solid #333' }}>
+            <textarea
+              className="form-control"
+              style={{ flex: 1, resize: 'none', height: '80px', fontFamily: '"JetBrains Mono", "Fira Code", monospace', fontSize: '13px', background: '#000', color: '#10b981', border: '1px solid #333' }}
+              value={commandInput}
+              onChange={e => setCommandInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (commandInput.trim() && statusRef.current === 'connected') {
+                    const payload = commandInput.replace(/\n/g, '\r') + '\r';
+                    window.electronAPI.write(session.id, payload);
+                    setCommandInput('');
+                    // Refocus terminal
+                    xtermRef.current?.focus();
+                  }
+                }
+              }}
+              placeholder="Pre-input commands here... (Enter to send, Shift+Enter for new line)"
+            />
+          </div>
+        )}
       </div>
 
       <div className={`history-panel ${historyOpen ? '' : 'collapsed'}`}>

@@ -55,6 +55,45 @@ export default function Terminal({ session, onDisconnect }) {
       }
     });
 
+    // Custom Key Shortcuts (Copy/Paste)
+    term.attachCustomKeyEventHandler(e => {
+      // Copy: Ctrl+Shift+C or Ctrl+Insert
+      if ((e.ctrlKey && e.shiftKey && e.code === 'KeyC') || (e.ctrlKey && e.code === 'Insert')) {
+        if (e.type === 'keydown') {
+          const selection = term.getSelection();
+          if (selection) {
+            navigator.clipboard.writeText(selection);
+            term.clearSelection();
+          }
+        }
+        return false;
+      }
+      // Paste: Ctrl+Shift+V or Shift+Insert
+      if ((e.ctrlKey && e.shiftKey && e.code === 'KeyV') || (e.shiftKey && e.code === 'Insert')) {
+        if (e.type === 'keydown') {
+          navigator.clipboard.readText().then(text => {
+            if (statusRef.current === 'connected' && text) {
+              window.electronAPI.write(session.id, text);
+            }
+          }).catch(err => console.error('Failed to read clipboard', err));
+        }
+        return false;
+      }
+      return true;
+    });
+
+    // Middle Click to Paste
+    const handleMouseUp = (e) => {
+      if (e.button === 1) { // Middle mouse button
+        navigator.clipboard.readText().then(text => {
+          if (statusRef.current === 'connected' && text) {
+            window.electronAPI.write(session.id, text);
+          }
+        }).catch(err => console.error('Failed to read clipboard', err));
+      }
+    };
+    terminalRef.current.addEventListener('mouseup', handleMouseUp);
+
     // Resize handler
     const handleResize = () => {
       if (fitAddonRef.current && xtermRef.current) {
@@ -95,6 +134,9 @@ export default function Terminal({ session, onDisconnect }) {
       cleanupData();
       cleanupStatus();
       window.removeEventListener('resize', handleResize);
+      if (terminalRef.current) {
+        terminalRef.current.removeEventListener('mouseup', handleMouseUp);
+      }
       term.dispose();
     };
   }, [session.id]);

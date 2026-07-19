@@ -35,9 +35,10 @@ export default function Terminal({ session, onDisconnect }) {
     return () => window.removeEventListener('click', closeMenu);
   }, []);
 
-  // Refit terminal when command bar toggles
+  // Robust resizing using ResizeObserver
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    if (!terminalRef.current) return;
+    const observer = new ResizeObserver(() => {
       if (fitAddonRef.current && xtermRef.current) {
         try {
           fitAddonRef.current.fit();
@@ -49,9 +50,11 @@ export default function Terminal({ session, onDisconnect }) {
           // Ignore if terminal isn't fully ready
         }
       }
-    }, 50);
-    return () => clearTimeout(timeout);
-  }, [commandBarOpen, session.id]);
+    });
+    // We observe the parent container to track flex layout changes
+    observer.observe(terminalRef.current.parentElement);
+    return () => observer.disconnect();
+  }, [session.id]);
 
   useEffect(() => {
     statusRef.current = status;
@@ -177,14 +180,16 @@ export default function Terminal({ session, onDisconnect }) {
     };
     terminalRef.current.addEventListener('contextmenu', handleContextMenu);
 
-    // Resize handler
+    // Resize handler (kept for window resizes, though ResizeObserver usually catches these too)
     const handleResize = () => {
       if (fitAddonRef.current && xtermRef.current) {
-        fitAddonRef.current.fit();
-        const { cols, rows } = xtermRef.current;
-        if (statusRef.current === 'connected') {
-          window.electronAPI.resize(session.id, cols, rows);
-        }
+        try {
+          fitAddonRef.current.fit();
+          const { cols, rows } = xtermRef.current;
+          if (statusRef.current === 'connected') {
+            window.electronAPI.resize(session.id, cols, rows);
+          }
+        } catch (e) {}
       }
     };
     window.addEventListener('resize', handleResize);
@@ -245,7 +250,9 @@ export default function Terminal({ session, onDisconnect }) {
             </button>
           </div>
         </div>
-        <div className="terminal-wrapper" ref={terminalRef}></div>
+        <div className="terminal-wrapper-outer">
+          <div className="terminal-wrapper" ref={terminalRef}></div>
+        </div>
         {commandBarOpen && (
           <div className="command-bar" style={{ display: 'flex', padding: '0.5rem', background: '#1e1e1e', borderTop: '1px solid #333' }}>
             <textarea

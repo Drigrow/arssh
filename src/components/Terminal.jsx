@@ -11,6 +11,13 @@ export default function Terminal({ session, onDisconnect }) {
   const [status, setStatus] = useState('connecting'); // connecting, connected, error, closed
   const statusRef = useRef(status);
   const [errorMsg, setErrorMsg] = useState('');
+  const [contextMenu, setContextMenu] = useState(null);
+
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, []);
 
   useEffect(() => {
     statusRef.current = status;
@@ -94,6 +101,14 @@ export default function Terminal({ session, onDisconnect }) {
     };
     terminalRef.current.addEventListener('mouseup', handleMouseUp);
 
+    // Context Menu
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+      // Show menu whether selected or not
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    };
+    terminalRef.current.addEventListener('contextmenu', handleContextMenu);
+
     // Resize handler
     const handleResize = () => {
       if (fitAddonRef.current && xtermRef.current) {
@@ -136,6 +151,7 @@ export default function Terminal({ session, onDisconnect }) {
       window.removeEventListener('resize', handleResize);
       if (terminalRef.current) {
         terminalRef.current.removeEventListener('mouseup', handleMouseUp);
+        terminalRef.current.removeEventListener('contextmenu', handleContextMenu);
       }
       term.dispose();
     };
@@ -155,6 +171,50 @@ export default function Terminal({ session, onDisconnect }) {
         </div>
       </div>
       <div className="terminal-wrapper" ref={terminalRef}></div>
+
+      {contextMenu && (
+        <div 
+          className="context-menu glass-panel"
+          style={{ 
+            position: 'fixed', 
+            top: contextMenu.y, 
+            left: contextMenu.x, 
+            zIndex: 1000,
+            padding: '0.5rem 0',
+            minWidth: '220px'
+          }}
+        >
+          <div className="menu-item" onClick={onDisconnect}>
+            <span>Disconnect</span>
+            <span className="shortcut">Alt+C</span>
+          </div>
+          <div className="menu-divider"></div>
+          <div className="menu-item" onClick={() => {
+            const selection = xtermRef.current?.getSelection();
+            if (selection) {
+              navigator.clipboard.writeText(selection);
+              xtermRef.current?.clearSelection();
+            }
+          }}>
+            <span>Copy</span>
+            <span className="shortcut">Ctrl+Shift+C</span>
+          </div>
+          <div className="menu-item" onClick={() => {
+            navigator.clipboard.readText().then(text => {
+              if (statusRef.current === 'connected' && text) {
+                window.electronAPI.write(session.id, text);
+              }
+            }).catch(err => console.error('Failed to read clipboard', err));
+          }}>
+            <span>Paste</span>
+            <span className="shortcut">Ctrl+Shift+V</span>
+          </div>
+          <div className="menu-divider"></div>
+          <div className="menu-item" onClick={() => xtermRef.current?.clear()}>
+            <span>Clear Screen</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -213,7 +213,8 @@ h2 {
   border-bottom: 1px solid #333;
   justify-content: space-between;
   -webkit-app-region: drag;
-  padding-left: 80px; /* Leave space for macOS traffic lights if needed, or generic drag space */
+  padding-left: 80px; /* Leave space for macOS traffic lights */
+  padding-right: 150px; /* Leave space for Windows native window controls */
 }
 
 .terminal-header .actions {
@@ -248,4 +249,37 @@ h2 {
 .pf-row input {
   padding: 0.5rem;
   font-size: 0.85rem;
+}
+
+/* Context Menu */
+.context-menu {
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  background: rgba(25, 28, 41, 0.95);
+}
+
+.menu-item {
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.menu-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.menu-item .shortcut {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--panel-border);
+  margin: 0.25rem 0;
 }

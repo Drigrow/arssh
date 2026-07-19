@@ -35,6 +35,24 @@ export default function Terminal({ session, onDisconnect }) {
     return () => window.removeEventListener('click', closeMenu);
   }, []);
 
+  // Refit terminal when command bar toggles
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (fitAddonRef.current && xtermRef.current) {
+        try {
+          fitAddonRef.current.fit();
+          const { cols, rows } = xtermRef.current;
+          if (statusRef.current === 'connected') {
+            window.electronAPI.resize(session.id, cols, rows);
+          }
+        } catch (e) {
+          // Ignore if terminal isn't fully ready
+        }
+      }
+    }, 50);
+    return () => clearTimeout(timeout);
+  }, [commandBarOpen, session.id]);
+
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
@@ -238,9 +256,19 @@ export default function Terminal({ session, onDisconnect }) {
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (commandInput.trim() && statusRef.current === 'connected') {
+                  const cmdTrimmed = commandInput.trim();
+                  if (cmdTrimmed && statusRef.current === 'connected') {
                     const payload = commandInput.replace(/\n/g, '\r') + '\r';
                     window.electronAPI.write(session.id, payload);
+                    
+                    // Save to history
+                    const timeStr = new Date().toLocaleTimeString();
+                    window.electronAPI.historySave(cmdTrimmed, timeStr).then(savedCmd => {
+                      if (historyDateRef.current === getTodayStr()) {
+                        setCommandHistory(prev => [savedCmd, ...prev]);
+                      }
+                    });
+
                     setCommandInput('');
                     // Refocus terminal
                     xtermRef.current?.focus();

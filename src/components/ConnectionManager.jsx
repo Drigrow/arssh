@@ -5,7 +5,7 @@ export default function ConnectionManager({ onConnect }) {
   const [connections, setConnections] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', host: '', port: '22', username: '', password: '', privateKey: '', portForwarding: []
+    name: '', host: '', port: '', username: '', password: '', privateKey: '', portForwarding: []
   });
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function ConnectionManager({ onConnect }) {
     const conn = { ...formData, id: editingId };
     await window.electronAPI.saveConnection(conn);
     setEditingId(null);
-    setFormData({ name: '', host: '', port: '22', username: '', password: '', privateKey: '', portForwarding: [] });
+    setFormData({ name: '', host: '', port: '', username: '', password: '', privateKey: '', portForwarding: [] });
     loadConnections();
   };
 
@@ -40,7 +40,7 @@ export default function ConnectionManager({ onConnect }) {
     setFormData({
       name: conn.name || '',
       host: conn.host || '',
-      port: conn.port || '22',
+      port: conn.port || '',
       username: conn.username || '',
       password: conn.password || '', // Password might be decrypted from main process
       privateKey: conn.privateKey || '',
@@ -75,7 +75,7 @@ export default function ConnectionManager({ onConnect }) {
           <h2><Terminal size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }}/> Servers</h2>
           <button className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%' }} onClick={() => {
             setEditingId(null);
-            setFormData({ name: '', host: '', port: '22', username: '', password: '', privateKey: '', portForwarding: [] });
+            setFormData({ name: '', host: '', port: '', username: '', password: '', privateKey: '', portForwarding: [] });
           }}>
             <Plus size={16} />
           </button>
@@ -88,17 +88,20 @@ export default function ConnectionManager({ onConnect }) {
             </div>
           ) : (
             connections.map(conn => (
-              <div key={conn.id} className="connection-item" onClick={() => onConnect(conn)}>
+              <div key={conn.id} className="connection-item">
                 <div className="connection-info">
                   <strong>{conn.name || conn.host}</strong>
-                  <span>{conn.username}@{conn.host}:{conn.port}</span>
+                  <span>{conn.username || 'root'}@{conn.host}:{conn.port || '22'}</span>
                 </div>
-                <div className="actions" style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={(e) => handleEdit(conn, e)}>
-                    <Edit2 size={14} />
+                <div className="actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem' }}>
+                  <button className="btn btn-primary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem' }} onClick={() => onConnect(conn)}>
+                    <Play size={14} /> Connect
                   </button>
-                  <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={(e) => handleDelete(conn.id, e)}>
-                    <Trash2 size={14} />
+                  <button className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem' }} onClick={(e) => handleEdit(conn, e)}>
+                    <Edit2 size={14} /> Edit
+                  </button>
+                  <button className="btn btn-danger" style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem' }} onClick={(e) => handleDelete(conn.id, e)}>
+                    <Trash2 size={14} /> Delete
                   </button>
                 </div>
               </div>
@@ -125,13 +128,13 @@ export default function ConnectionManager({ onConnect }) {
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label>Port</label>
-              <input className="form-control" value={formData.port} onChange={e => setFormData({...formData, port: e.target.value})} required />
+              <input className="form-control" placeholder="22" value={formData.port} onChange={e => setFormData({...formData, port: e.target.value})} />
             </div>
           </div>
 
           <div className="form-group">
             <label>Username</label>
-            <input className="form-control" placeholder="root" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
+            <input className="form-control" placeholder="root" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
           </div>
 
           <div className="form-group">

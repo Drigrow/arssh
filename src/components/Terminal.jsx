@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { XCircle, Activity } from 'lucide-react';
+import { XCircle, Activity, History, X } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
 export default function Terminal({ session, onDisconnect }) {
@@ -12,6 +12,11 @@ export default function Terminal({ session, onDisconnect }) {
   const statusRef = useRef(status);
   const [errorMsg, setErrorMsg] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [commandHistory, setCommandHistory] = useState([]);
+  const cmdBuffer = useRef('');
+  const [confirmModal, setConfirmModal] = useState(null);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -59,6 +64,22 @@ export default function Terminal({ session, onDisconnect }) {
     term.onData(data => {
       if (statusRef.current === 'connected') {
         window.electronAPI.write(session.id, data);
+        
+        // Command buffering
+        for (let i = 0; i < data.length; i++) {
+          const char = data[i];
+          if (char === '\r') {
+            const cmd = cmdBuffer.current.trim();
+            if (cmd) {
+              setCommandHistory(prev => [{ id: Date.now() + Math.random(), time: new Date().toLocaleTimeString(), cmd }, ...prev].slice(0, 50));
+            }
+            cmdBuffer.current = '';
+          } else if (char === '\x7f' || char === '\b') {
+            cmdBuffer.current = cmdBuffer.current.slice(0, -1);
+          } else if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
+            cmdBuffer.current += char;
+          }
+        }
       }
     });
 
@@ -171,19 +192,71 @@ export default function Terminal({ session, onDisconnect }) {
   }, [session.id]);
 
   return (
-    <div className="terminal-container">
-      <div className="terminal-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', fontSize: '0.9rem' }}>
-          <Activity size={14} color={status === 'connected' ? '#10b981' : (status === 'connecting' ? '#eab308' : '#ef4444')} />
-          {session.name || session.host} - {status}
+    <div className="terminal-container" style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="terminal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', fontSize: '0.9rem' }}>
+            <Activity size={14} color={status === 'connected' ? '#10b981' : (status === 'connecting' ? '#eab308' : '#ef4444')} />
+            {session.name || session.host} - {status}
+          </div>
+          <div className="actions" style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => setHistoryOpen(!historyOpen)}>
+              <History size={14} /> History
+            </button>
+            <button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={onDisconnect}>
+              <XCircle size={14} /> Disconnect
+            </button>
+          </div>
         </div>
-        <div className="actions">
-          <button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={onDisconnect}>
-            <XCircle size={14} /> Disconnect
-          </button>
+        <div className="terminal-wrapper" ref={terminalRef}></div>
+      </div>
+
+      <div className={`history-panel ${historyOpen ? '' : 'collapsed'}`}>
+        <div className="history-header">
+          <span>Command History</span>
+          <X size={16} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setHistoryOpen(false)} />
+        </div>
+        <div className="history-content">
+          {commandHistory.length === 0 ? (
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', marginTop: '1rem' }}>No history recorded.</div>
+          ) : (
+            commandHistory.map(item => (
+              <div key={item.id} className="history-item" onClick={() => {
+                const muteTime = localStorage.getItem('arssh_history_mute');
+                if (muteTime && Date.now() - parseInt(muteTime) < 15 * 60 * 1000) {
+                  window.electronAPI.write(session.id, item.cmd + '\r');
+                } else {
+                  setConfirmModal(item.cmd);
+                }
+              }}>
+                <div className="history-time">{item.time}</div>
+                <div className="history-cmd">{item.cmd}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
-      <div className="terminal-wrapper" ref={terminalRef}></div>
+
+      {confirmModal && (
+        <div className="modal-overlay">
+          <div className="history-modal">
+            <h3>Paste and Send to Terminal?</h3>
+            <div className="cmd-preview">{confirmModal}</div>
+            <div className="btn-group">
+              <button className="btn btn-primary" onClick={() => {
+                window.electronAPI.write(session.id, confirmModal + '\r');
+                setConfirmModal(null);
+              }}>Yes</button>
+              <button className="btn btn-secondary" onClick={() => {
+                localStorage.setItem('arssh_history_mute', Date.now().toString());
+                window.electronAPI.write(session.id, confirmModal + '\r');
+                setConfirmModal(null);
+              }}>Yes, and don't ask me again in 15 minutes</button>
+              <button className="btn btn-secondary" style={{ backgroundColor: '#333' }} onClick={() => setConfirmModal(null)}>No, Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {contextMenu && (
         <div 

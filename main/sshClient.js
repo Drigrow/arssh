@@ -135,7 +135,8 @@ class SSHClientManager {
       const connectConfig = {
         host: config.host,
         port: parseInt(config.port) || 22,
-        username: config.username,
+        username: config.username || 'root',
+        readyTimeout: 20000
       };
 
       if (config.password) {

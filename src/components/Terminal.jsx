@@ -104,8 +104,21 @@ export default function Terminal({ session, onDisconnect }) {
     // Context Menu
     const handleContextMenu = (e) => {
       e.preventDefault();
-      // Show menu whether selected or not
-      setContextMenu({ x: e.clientX, y: e.clientY });
+      
+      const menuWidth = 220;
+      const menuHeight = 160; // Approximate height of the menu
+
+      let x = e.clientX;
+      let y = e.clientY;
+
+      if (window.innerWidth - x < menuWidth) {
+        x = window.innerWidth - menuWidth - 10;
+      }
+      if (window.innerHeight - y < menuHeight) {
+        y = window.innerHeight - menuHeight - 10;
+      }
+
+      setContextMenu({ x, y });
     };
     terminalRef.current.addEventListener('contextmenu', handleContextMenu);
 

@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .agents/
+.arssh-history/
 
 # Electron / Build outputs
 dist-electron

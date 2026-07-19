@@ -3,6 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import SSHClient from './sshClient.js';
 import StoreManager from './store.js';
+import HistoryManager from './history.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -77,4 +78,18 @@ ipcMain.handle('ssh:write', (event, { id, data }) => {
 
 ipcMain.handle('ssh:resize', (event, { id, cols, rows }) => {
   return SSHClient.resize(id, cols, rows);
+});
+
+// IPC Handlers for History
+ipcMain.handle('history:save', (event, { cmd, timestamp }) => {
+  return HistoryManager.saveCommand(cmd, timestamp);
+});
+ipcMain.handle('history:get', (event, dateStr) => {
+  return HistoryManager.getCommands(dateStr);
+});
+ipcMain.handle('history:delete', (event, { dateStr, id }) => {
+  return HistoryManager.deleteCommand(dateStr, id);
+});
+ipcMain.handle('history:clear', (event, dateStr) => {
+  return HistoryManager.clearDate(dateStr);
 });

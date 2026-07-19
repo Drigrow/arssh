@@ -13,10 +13,18 @@ export default function Terminal({ session, onDisconnect }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
   
+  const getTodayStr = () => new Date().toISOString().split('T')[0];
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyDate, setHistoryDate] = useState(getTodayStr());
+  const historyDateRef = useRef(historyDate);
   const [commandHistory, setCommandHistory] = useState([]);
   const cmdBuffer = useRef('');
   const [confirmModal, setConfirmModal] = useState(null);
+
+  useEffect(() => {
+    historyDateRef.current = historyDate;
+    window.electronAPI.historyGet(historyDate).then(setCommandHistory);
+  }, [historyDate]);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -71,7 +79,12 @@ export default function Terminal({ session, onDisconnect }) {
           if (char === '\r') {
             const cmd = cmdBuffer.current.trim();
             if (cmd) {
-              setCommandHistory(prev => [{ id: Date.now() + Math.random(), time: new Date().toLocaleTimeString(), cmd }, ...prev].slice(0, 50));
+              const timeStr = new Date().toLocaleTimeString();
+              window.electronAPI.historySave(cmd, timeStr).then(savedCmd => {
+                if (historyDateRef.current === getTodayStr()) {
+                  setCommandHistory(prev => [savedCmd, ...prev]);
+                }
+              });
             }
             cmdBuffer.current = '';
           } else if (char === '\x7f' || char === '\b') {
@@ -213,24 +226,57 @@ export default function Terminal({ session, onDisconnect }) {
 
       <div className={`history-panel ${historyOpen ? '' : 'collapsed'}`}>
         <div className="history-header">
-          <span>Command History</span>
-          <X size={16} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setHistoryOpen(false)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Command History</span>
+              <X size={16} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setHistoryOpen(false)} />
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input 
+                type="date" 
+                className="form-control" 
+                style={{ padding: '0.2rem', fontSize: '0.8rem' }} 
+                value={historyDate}
+                onChange={e => setHistoryDate(e.target.value)}
+              />
+              <button className="btn btn-danger" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }} onClick={() => {
+                if (confirm('Clear all history for ' + historyDate + '?')) {
+                  window.electronAPI.historyClear(historyDate).then(() => setCommandHistory([]));
+                }
+              }}>Clear Day</button>
+            </div>
+          </div>
         </div>
         <div className="history-content">
           {commandHistory.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', marginTop: '1rem' }}>No history recorded.</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', marginTop: '1rem' }}>No history recorded for this date.</div>
           ) : (
             commandHistory.map(item => (
-              <div key={item.id} className="history-item" onClick={() => {
-                const muteTime = localStorage.getItem('arssh_history_mute');
-                if (muteTime && Date.now() - parseInt(muteTime) < 15 * 60 * 1000) {
-                  window.electronAPI.write(session.id, item.cmd + '\r');
-                } else {
-                  setConfirmModal(item.cmd);
-                }
-              }}>
-                <div className="history-time">{item.time}</div>
-                <div className="history-cmd">{item.cmd}</div>
+              <div key={item.id} className="history-item" style={{ position: 'relative' }}>
+                <div onClick={() => {
+                  const muteTime = localStorage.getItem('arssh_history_mute');
+                  if (muteTime && Date.now() - parseInt(muteTime) < 15 * 60 * 1000) {
+                    window.electronAPI.write(session.id, item.cmd + '\r');
+                  } else {
+                    setConfirmModal(item.cmd);
+                  }
+                }}>
+                  <div className="history-time">{item.time}</div>
+                  <div className="history-cmd">{item.cmd}</div>
+                </div>
+                <X 
+                  size={14} 
+                  color="#ef4444" 
+                  style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.electronAPI.historyDelete(historyDate, item.id).then(success => {
+                      if (success) {
+                        setCommandHistory(prev => prev.filter(c => c.id !== item.id));
+                      }
+                    });
+                  }}
+                />
               </div>
             ))
           )}

@@ -22,5 +22,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (event, ...args) => callback(...args);
     ipcRenderer.on('ssh:status', handler);
     return () => ipcRenderer.off('ssh:status', handler);
-  }
+  },
+
+  // History
+  historySave: (cmd, timestamp) => ipcRenderer.invoke('history:save', { cmd, timestamp }),
+  historyGet: (dateStr) => ipcRenderer.invoke('history:get', dateStr),
+  historyDelete: (dateStr, id) => ipcRenderer.invoke('history:delete', { dateStr, id }),
+  historyClear: (dateStr) => ipcRenderer.invoke('history:clear', dateStr)
 });

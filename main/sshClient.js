@@ -45,7 +45,7 @@ async function getProxySocket(targetHost, targetPort) {
         host: proxyUrl.hostname,
         port: proxyUrl.port,
         method: 'CONNECT',
-        path: `${targetHost}:${targetPort}`
+        path: targetHost.includes(':') ? `[${targetHost}]:${targetPort}` : `${targetHost}:${targetPort}`
       });
       req.on('connect', (res, socket, head) => {
         if (res.statusCode === 200) {

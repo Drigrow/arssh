@@ -8,7 +8,7 @@ export default function Terminal({ session, onDisconnect }) {
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
-  const [status, setStatus] = useState('connecting'); // connecting, connected, error, closed
+  const [status, setStatus] = useState('connected'); // connected, error, closed
   const statusRef = useRef(status);
   const [errorMsg, setErrorMsg] = useState('');
   const [contextMenu, setContextMenu] = useState(null);

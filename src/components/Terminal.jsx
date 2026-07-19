@@ -192,7 +192,7 @@ export default function Terminal({ session, onDisconnect }) {
   }, [session.id]);
 
   return (
-    <div className="terminal-container" style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%' }}>
+    <div className="terminal-container">
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className="terminal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', fontSize: '0.9rem' }}>

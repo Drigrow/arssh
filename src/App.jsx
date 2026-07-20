@@ -104,13 +104,12 @@ export default function App() {
         onChangeLayout={setLayoutMode}
       />
       <div className="app-content">
-        {showConnectionManager ? (
-          <div className="app-container">
-            <ConnectionManager onConnect={handleConnect} />
-          </div>
-        ) : (
-          renderLayout()
-        )}
+        <div className="app-container" style={{ display: showConnectionManager ? 'flex' : 'none' }}>
+          <ConnectionManager onConnect={handleConnect} />
+        </div>
+        <div style={{ display: showConnectionManager ? 'none' : 'flex', flex: 1, width: '100%', height: '100%' }}>
+          {renderLayout()}
+        </div>
       </div>
     </div>
   );

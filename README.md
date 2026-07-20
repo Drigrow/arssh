@@ -10,10 +10,12 @@
 ## ✨ Features
 
 - 🎨 **Modern Glassmorphism UI**: A sleek, dark-mode first interface built with React and Vanilla CSS.
+- 📑 **Multi-Tab & Split Layouts**: Effortlessly manage multiple connections with browser-like tabs. View your terminals side-by-side or in a 2x2 grid for ultimate productivity.
 - 🔐 **Secure Credential Storage**: Passwords and private keys are encrypted down to the OS-level using Electron's `safeStorage` (e.g., DPAPI on Windows, Keychain on macOS).
 - 🖥️ **Full Terminal Emulation**: Integrated with `@xterm/xterm` for dynamic resizing, accurate ANSI coloring, and native feeling shell interactions.
 - 🌉 **Built-in Port Forwarding**: Easily configure Local-to-Remote SSH tunnels (e.g., `8080 -> 127.0.0.1:80`) dynamically when you connect.
 - 🛡️ **Global TUN Proxy Safe**: Custom backend proxy routing completely bypasses Electron Chromium's native proxy stack, eliminating `ERR_CONNECTION_REFUSED` and handshake errors when using tools like Clash, V2ray, or Sing-box.
+- 🤖 **AI Integration (Coming Soon)**: Get ready for intelligent, context-aware assistance built right into your terminal workflow.
 
 ---
 

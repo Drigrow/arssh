@@ -8,7 +8,7 @@ export default function Terminal({ session, onDisconnect }) {
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
-  const [status, setStatus] = useState('connected'); // connected, error, closed
+  const [status, setStatus] = useState(session.connectStatus || 'connecting'); // connecting, connected, error, closed
   const statusRef = useRef(status);
   const [errorMsg, setErrorMsg] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
@@ -44,7 +44,7 @@ export default function Terminal({ session, onDisconnect }) {
           fitAddonRef.current.fit();
           const { cols, rows } = xtermRef.current;
           if (statusRef.current === 'connected') {
-            window.electronAPI.resize(session.id, cols, rows);
+            window.electronAPI.resize(session.instanceId, cols, rows);
           }
         } catch (e) {
           // Ignore if terminal isn't fully ready
@@ -54,7 +54,7 @@ export default function Terminal({ session, onDisconnect }) {
     // We observe the parent container to track flex layout changes
     observer.observe(terminalRef.current.parentElement);
     return () => observer.disconnect();
-  }, [session.id]);
+  }, [session.instanceId]);
 
   useEffect(() => {
     statusRef.current = status;
@@ -92,10 +92,14 @@ export default function Terminal({ session, onDisconnect }) {
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
+    if (statusRef.current === 'connecting') {
+      term.writeln(`\r\n\x1b[36mConnecting to ${session.host}...\x1b[0m\r\n`);
+    }
+
     // Handle input
     term.onData(data => {
       if (statusRef.current === 'connected') {
-        window.electronAPI.write(session.id, data);
+        window.electronAPI.write(session.instanceId, data);
         
         // Command buffering
         for (let i = 0; i < data.length; i++) {
@@ -138,7 +142,7 @@ export default function Terminal({ session, onDisconnect }) {
         if (e.type === 'keydown') {
           navigator.clipboard.readText().then(text => {
             if (statusRef.current === 'connected' && text) {
-              window.electronAPI.write(session.id, text);
+              window.electronAPI.write(session.instanceId, text);
             }
           }).catch(err => console.error('Failed to read clipboard', err));
         }
@@ -152,7 +156,7 @@ export default function Terminal({ session, onDisconnect }) {
       if (e.button === 1) { // Middle mouse button
         navigator.clipboard.readText().then(text => {
           if (statusRef.current === 'connected' && text) {
-            window.electronAPI.write(session.id, text);
+            window.electronAPI.write(session.instanceId, text);
           }
         }).catch(err => console.error('Failed to read clipboard', err));
       }
@@ -187,7 +191,7 @@ export default function Terminal({ session, onDisconnect }) {
           fitAddonRef.current.fit();
           const { cols, rows } = xtermRef.current;
           if (statusRef.current === 'connected') {
-            window.electronAPI.resize(session.id, cols, rows);
+            window.electronAPI.resize(session.instanceId, cols, rows);
           }
         } catch (e) {}
       }
@@ -196,13 +200,16 @@ export default function Terminal({ session, onDisconnect }) {
 
     // IPC Listeners
     const cleanupData = window.electronAPI.onData((data) => {
-      if (data.id === session.id && xtermRef.current) {
+      if (data.id === session.instanceId && xtermRef.current) {
         xtermRef.current.write(data.data);
       }
     });
 
     const cleanupStatus = window.electronAPI.onStatus((data) => {
-      if (data.id === session.id) {
+      if (data.id === session.instanceId) {
+        if (data.status === 'connected' && statusRef.current === 'connecting') {
+          term.writeln('\x1b[32mConnection established.\x1b[0m\r\n');
+        }
         setStatus(data.status);
         if (data.status === 'connected') {
           term.focus();
@@ -228,7 +235,7 @@ export default function Terminal({ session, onDisconnect }) {
       }
       term.dispose();
     };
-  }, [session.id]);
+  }, [session.instanceId]);
 
   return (
     <div className="terminal-container">
@@ -266,7 +273,7 @@ export default function Terminal({ session, onDisconnect }) {
                   const cmdTrimmed = commandInput.trim();
                   if (cmdTrimmed && statusRef.current === 'connected') {
                     const payload = commandInput.replace(/\n/g, '\r') + '\r';
-                    window.electronAPI.write(session.id, payload);
+                    window.electronAPI.write(session.instanceId, payload);
                     
                     // Save to history
                     const timeStr = new Date().toLocaleTimeString();
@@ -320,7 +327,7 @@ export default function Terminal({ session, onDisconnect }) {
                 <div onClick={() => {
                   const muteTime = localStorage.getItem('arssh_history_mute');
                   if (muteTime && Date.now() - parseInt(muteTime) < 15 * 60 * 1000) {
-                    window.electronAPI.write(session.id, item.cmd + '\r');
+                    window.electronAPI.write(session.instanceId, item.cmd + '\r');
                   } else {
                     setConfirmModal(item.cmd);
                   }
@@ -354,12 +361,12 @@ export default function Terminal({ session, onDisconnect }) {
             <div className="cmd-preview">{confirmModal}</div>
             <div className="btn-group">
               <button className="btn btn-primary" onClick={() => {
-                window.electronAPI.write(session.id, confirmModal + '\r');
+                window.electronAPI.write(session.instanceId, confirmModal + '\r');
                 setConfirmModal(null);
               }}>Yes</button>
               <button className="btn btn-secondary" onClick={() => {
                 localStorage.setItem('arssh_history_mute', Date.now().toString());
-                window.electronAPI.write(session.id, confirmModal + '\r');
+                window.electronAPI.write(session.instanceId, confirmModal + '\r');
                 setConfirmModal(null);
               }}>Yes, and don't ask me again in 15 minutes</button>
               <button className="btn btn-secondary" style={{ backgroundColor: '#333' }} onClick={() => setConfirmModal(null)}>No, Cancel</button>
@@ -398,7 +405,7 @@ export default function Terminal({ session, onDisconnect }) {
           <div className="menu-item" onClick={() => {
             navigator.clipboard.readText().then(text => {
               if (statusRef.current === 'connected' && text) {
-                window.electronAPI.write(session.id, text);
+                window.electronAPI.write(session.instanceId, text);
               }
             }).catch(err => console.error('Failed to read clipboard', err));
           }}>

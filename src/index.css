@@ -38,9 +38,8 @@ input, button, select {
 
 .app-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
-  padding-top: 32px; /* For draggable title bar area */
+  height: 100%;
+  width: 100%;
 }
 
 /* Connection Manager */
@@ -396,4 +395,166 @@ h2 {
   height: 1px;
   background: var(--panel-border);
   margin: 0.25rem 0;
+}
+
+/* App Layout & Tabs */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color);
+}
+
+.app-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(20, 20, 20, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 40px;
+  padding: 0 10px;
+  -webkit-app-region: drag; /* Draggable title bar area */
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex: 1;
+  overflow-x: auto;
+  -webkit-app-region: no-drag;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  height: 100%;
+  background: transparent;
+  color: var(--text-secondary);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  user-select: none;
+  min-width: 150px;
+  max-width: 250px;
+}
+
+.tab.active {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.tab-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.tab-indicator.connected { background: var(--success-color); }
+.tab-indicator.connecting { background: var(--warning-color); }
+.tab-indicator.error { background: var(--danger-color); }
+
+.tab-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+}
+
+.tab-close, .tab-add {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+.tab-close:hover, .tab-add:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.tab-add {
+  margin-left: 5px;
+  height: 30px;
+  width: 30px;
+  -webkit-app-region: no-drag;
+}
+
+.layout-controls {
+  display: flex;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-app-region: no-drag;
+}
+
+.layout-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+}
+.layout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.layout-btn.active {
+  color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* Layout Containers */
+.layout-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex: 1;
+}
+
+.layout-container.single {
+  flex-direction: row;
+}
+
+.layout-container.split-vertical {
+  flex-direction: row;
+}
+
+.layout-container.split-horizontal {
+  flex-direction: column;
+}
+
+.layout-container.grid {
+  flex-wrap: wrap;
+}
+.layout-container.grid .pane {
+  flex-basis: 50%;
+  height: 50%;
+}
+
+.pane {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid transparent;
+}
+.pane.pane-active {
+  border: 1px solid var(--primary-color);
 }

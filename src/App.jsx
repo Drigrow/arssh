@@ -56,27 +56,35 @@ export default function App() {
   const renderLayout = () => {
     if (openSessions.length === 0) return null;
 
-    let visibleSessions = [];
+    let visibleSessionIds = [];
     if (layoutMode === 'single') {
       const active = openSessions.find(s => s.instanceId === activeSessionId);
-      if (active) visibleSessions = [active];
-      else visibleSessions = [openSessions[0]];
+      if (active) visibleSessionIds = [active.instanceId];
+      else visibleSessionIds = [openSessions[0].instanceId];
     } else if (layoutMode === 'split-vertical' || layoutMode === 'split-horizontal') {
-      visibleSessions = openSessions.slice(0, 2);
+      visibleSessionIds = openSessions.slice(0, 2).map(s => s.instanceId);
     } else if (layoutMode === 'grid') {
-      visibleSessions = openSessions.slice(0, 4);
+      visibleSessionIds = openSessions.slice(0, 4).map(s => s.instanceId);
     }
     
     return (
       <div className={`layout-container ${layoutMode}`}>
-        {visibleSessions.map(session => (
-          <div key={session.instanceId} className={`pane ${session.instanceId === activeSessionId ? 'pane-active' : ''}`} onClick={() => setActiveSessionId(session.instanceId)}>
-            <Terminal 
-              session={session} 
-              onDisconnect={() => handleDisconnect(session.instanceId)} 
-            />
-          </div>
-        ))}
+        {openSessions.map(session => {
+          const isVisible = visibleSessionIds.includes(session.instanceId);
+          return (
+            <div 
+              key={session.instanceId} 
+              className={`pane ${session.instanceId === activeSessionId ? 'pane-active' : ''}`} 
+              style={{ display: isVisible ? 'flex' : 'none' }}
+              onClick={() => setActiveSessionId(session.instanceId)}
+            >
+              <Terminal 
+                session={session} 
+                onDisconnect={() => handleDisconnect(session.instanceId)} 
+              />
+            </div>
+          );
+        })}
       </div>
     );
   };
